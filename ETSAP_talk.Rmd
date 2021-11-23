@@ -70,7 +70,8 @@ all_costs_001 %>%
          Region,
          Pv) %>%
   arrange(Attribute, Process, Period) %>%
-  knitr::kable(caption = "Veda csv output")
+  knitr::kable(caption = "Veda csv output")  %>%
+  kable_styling(latex_options = "striped")
 
 
 demos_001 %>% 
@@ -85,12 +86,13 @@ demos_001 %>%
          region,
          pv) %>%
   arrange(attribute, process, period)  %>%
-  knitr::kable(caption = "VedaR data")
+  knitr::kable(caption = "VedaR data") %>%
+  kable_styling(latex_options = "striped")
   
   
 ```  
 
-## Visually presenting data with R
+## Data Visualisation with R
 
 * A powerful and widely-used data visualisation package in R is ggplot
 * Here, we create a plot to display compare costs over years broken down by process, from the demos_001 data
@@ -106,7 +108,7 @@ data_to_plot  %>%
   # create the plot
   ggplot(aes(x = as.character(attribute), 
              y = pv, 
-             # the colour is specified by the attribute column
+             # the colour is specified by the process column
              fill = process)) + 
   geom_col() +
   #axis labels
@@ -116,10 +118,12 @@ data_to_plot  %>%
   scale_fill_discrete("") +
   #rotate x-label
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  # group by process in separate facets
+  # group by period and region in separate facets
   facet_grid(rows = vars(period),
              cols = vars(region),
-             scales = "free") 
+             scales = "free") +
+  #set background theme of plot
+  theme_bw()
 
 
 
@@ -129,9 +133,11 @@ data_to_plot  %>%
 * We can create a plot for a different dataset by simply changing the data that is passed to the plot.
 * Here, we plot the demos_007 data by changing the object data_to_plot. All other lines remaing the same
 
-```{r, out.width='1000px', dpi = 200}
+```{r, out.width='1000px'}
 demos_007 <- prep_data(filename_base = filename_base_007)
-data_to_plot <- demos_007  
+data_to_plot <- demos_007 %>%
+  #filter for processes starting with "elc"
+  filter(str_detect(process, "^(elc)"))
 
 data_to_plot %>%
   #select the cost attributes
@@ -141,7 +147,7 @@ data_to_plot %>%
   # create the plot
   ggplot(aes(x = as.character(attribute), 
              y = pv, 
-             # the colour is specified by the attribute column
+             # the colour is specified by the process column
              fill = process)) + 
   geom_col() +
   #axis labels
@@ -151,10 +157,147 @@ data_to_plot %>%
   scale_fill_discrete("") +
   #rotate x-label
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  # group by process in separate facets
+  # group by period and region in separate facets
   facet_grid(rows = vars(period),
              cols = vars(region),
-             scales = "free") 
+             scales = "free") +
+  #set background theme of plot
+  theme_bw()
+
+
+```
+
+* The ggplotly can create interactive plots
+* Here, we create an point plot of the demos_007, var_act variable for "elc" processes
+```{r}
+data_to_plot <- demos_007 %>%
+  #filter for processes starting with "elc"
+  filter(str_detect(process, "^(elc)")) %>%
+  # to get the annual var_act, we sum over time slices - more complex manipulations can be done
+  group_by(period, process, region, attribute) %>%
+  summarise(pv = sum(pv)) %>%
+  ungroup()
+ 
+
+var_act_plot <- data_to_plot %>%
+  #select the "var_act" attribute
+  filter(attribute == "var_act") %>%
+  # create the plot
+  ggplot(
+    # make the x-axis a date object
+    aes(x = as.Date(paste(period, "01/01", sep = "/")),
+             y = pv, 
+             colour = process
+             )) + 
+  geom_point() +
+  geom_line() +
+  #axis labels
+  xlab("") +
+  ylab("Annual process activity in period") + 
+  #rotate x-label
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  #set background theme of plot
+  theme_bw() 
+
+ggplotly(var_act_plot)
+
+```
+
+## Visualising the energy system
+
+* [Sankey diagrams](https://en.wikipedia.org/wiki/Sankey_diagram) can be used to visualise flows between elements in a connected syste,. 
+* The VedaR function `make_res()` visualises the system in of the TIMES solution as a Sankey diagram.
+* In the current version, the magnitude of flows is  not represented, and all the widths are set to a constant value
+```{r echo = T, fig.width=7, , fig.height=5}
+
+
+res_all <- make_res(dat = demos_007,
+                    region_select = "reg1",
+                    period_select = 2020,                 
+                    node_labels = process_description, 
+                    edge_labels = commodity_description, 
+                    sankey_width = 1000,
+                    sankey_height = 1000,
+                    font_size = 10)
+
+res_all
+
+
+
+```
+
+
+
+
+## Representing the energy system as a network
+
+* ["Graphs"](https://en.wikipedia.org/wiki/Graph_(discrete_mathematics)) are formal representations of connected networks. Graphs are comprised of nodes and edges.  Nodes and edges can be described by sets of attributes, e.g. Edges can have weights. 
+* R has tools for efficient analysis of graph structures. The `igraph` package is one of these [https://igraph.org/r/html/latest/](https://igraph.org/r/html/latest/).
+* The VedaR function `make_graph_from_veda_df()` transforms the veda data tibble that was produced by `prep_data()` into an igraph object. If the data contains only a single year, edge weights are assigned based on `var_fin` and `var_fout` attributes.
+
+* Here, we convert the demos_007 data for 2020 and reg1 to an igraph object.
+
+```{r, echo = T}
+g <- demos_007 %>%
+      filter(period == 2020, 
+             region == "reg1") %>%
+      make_graph_from_veda_df(node_labels = process,
+                              edge_labels = commodity
+                              )
+
+# print edge weights
+print("Edge weights")
+E(g)$weight
+
+```
+
+### Identifying paths
+
+* We can compute all simple paths from a given node using the igraph function `all_simple_paths()` (or between two nodes if the `to = ` argument is specified)
+
+* Here, we create an object `all_mincoa1_paths` that is the list of all paths starting from the mincoa1 process.
+
+
+```{r, echo = T}
+
+all_mincoa1_paths <- all_simple_paths(g, from = "mincoa1")
+all_mincoa1_paths
+
+```
+
+### Check if a string or element appears in a set of paths
+
+* The `vedar` function `check_in_paths()` provides a means of checking whether a
+string expression is included in the set of paths. The string needs to  be passed as a (regular expression)[https://www.petefreitag.com/cheatsheets/regex/] 
+
+* Here we check if the string "exp" appears in the set of paths "all_mincoa1_paths"
+
+```{r, echo = T}
+check_in_path("(exp)", all_mincoa1_paths)
+```
+
+* More complex queries can be created using `igraph` functions. Here, we check whether an "exp" process is included in the paths that are linked to the "coa" commodity as follows
+
+```{r, echo = T}
+
+#find all coa edges
+coa_edges <- which(E(g)$commodity == "coa")
+
+#find the start vertices of the coa commodity edges
+coa_start_vertices <- ends(g, coa_edges)[,1]
+
+#find all the paths that are linked to the coa_start_vertices
+
+all_coa_paths <- all_simple_paths(g, from = unique(coa_start_vertices))
+
+#check if the string "exp" appears in the set of paths that project from coa_start_vertices
+print("Check if 'exp' is in all_coa_paths")
+check_in_path("(exp)", all_coa_paths)
+
+#check if the string "dist" appears in the set of paths that project from coa_start_vertices
+print("Check if 'dist' is in all_coa_paths")
+check_in_path("(dist)", all_coa_paths)
+
 
 
 ```
