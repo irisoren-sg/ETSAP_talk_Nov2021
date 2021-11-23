@@ -1,0 +1,13 @@
+# output csv
+
+outputs/*.csv
+outputs/*/*.csv
+
+# R files
+
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+
