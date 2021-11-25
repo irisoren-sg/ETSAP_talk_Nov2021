@@ -205,9 +205,9 @@ ggplotly(var_act_plot)
 
 ## Visualising the energy system
 
-* [Sankey diagrams](https://en.wikipedia.org/wiki/Sankey_diagram) can be used to visualise flows between elements in a connected syste,. 
-* The VedaR function `make_res()` visualises the system in of the TIMES solution as a Sankey diagram.
-* In the current version, the magnitude of flows is  not represented, and all the widths are set to a constant value
+* [Sankey diagrams](https://en.wikipedia.org/wiki/Sankey_diagram) can be used to visualise flows between elements in a connected system. 
+* The VedaR function `make_res()` visualises the system of the TIMES solution as a Sankey diagram.
+* In the current version, the magnitude of flows is  not represented, and all the widths are set to a constant value.
 ```{r echo = T, fig.width=7, , fig.height=5}
 
 
@@ -234,7 +234,6 @@ res_all
 * ["Graphs"](https://en.wikipedia.org/wiki/Graph_(discrete_mathematics)) are formal representations of connected networks. Graphs are comprised of nodes and edges.  Nodes and edges can be described by sets of attributes, e.g. Edges can have weights. 
 * R has tools for efficient analysis of graph structures. The `igraph` package is one of these [https://igraph.org/r/html/latest/](https://igraph.org/r/html/latest/).
 * The VedaR function `make_graph_from_veda_df()` transforms the veda data tibble that was produced by `prep_data()` into an igraph object. If the data contains only a single year, edge weights are assigned based on `var_fin` and `var_fout` attributes.
-
 * Here, we convert the demos_007 data for 2020 and reg1 to an igraph object.
 
 ```{r, echo = T}
@@ -251,7 +250,7 @@ E(g)$weight
 
 ```
 
-### Identifying paths
+### What are the paths from, or between processes?
 
 * We can compute all simple paths from a given node using the igraph function `all_simple_paths()` (or between two nodes if the `to = ` argument is specified)
 
@@ -265,12 +264,12 @@ all_mincoa1_paths
 
 ```
 
-### Check if a string or element appears in a set of paths
+### Does a specified process appear in a set of paths?
 
 * The `vedar` function `check_in_paths()` provides a means of checking whether a
 string expression is included in the set of paths. The string needs to  be passed as a (regular expression)[https://www.petefreitag.com/cheatsheets/regex/] 
 
-* Here we check if the string "exp" appears in the set of paths "all_mincoa1_paths"
+* If all export processes include the string "exp", you can check if the string "exp" appears in the set of paths "all_mincoa1_paths" using the following command.
 
 ```{r, echo = T}
 check_in_path("(exp)", all_mincoa1_paths)
@@ -301,3 +300,8 @@ check_in_path("(dist)", all_coa_paths)
 
 
 ```
+
+### Other queries
+
+* `igraph` allows you to extract a range of graph theory metrics from your TIMES graph. 
+* See the the package documentation for details.
