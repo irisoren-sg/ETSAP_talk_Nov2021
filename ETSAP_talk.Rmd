@@ -62,19 +62,17 @@ datatable(demos_001)
 
 all_costs_001 <- read.csv(all_costs_001_file)
 
-all_costs_001 %>%
+all_costs_001_out <- all_costs_001 %>%
   select(Attribute, 
          Commodity, 
          Process, 
          Period, 
          Region,
          Pv) %>%
-  arrange(Attribute, Process, Period) %>%
-  knitr::kable(caption = "Veda csv output")  %>%
-  kable_styling(latex_options = "striped")
+  arrange(Attribute, Process, Period)
 
 
-demos_001 %>% 
+demos_costs_001_out <- demos_001 %>% 
   #select rows in which attribute contains the string "cost_" 
   # and process contains "coa
   filter(str_detect(attribute, "cost_"), 
@@ -85,7 +83,16 @@ demos_001 %>%
          period, 
          region,
          pv) %>%
-  arrange(attribute, process, period)  %>%
+  arrange(attribute, process, period)  
+
+###################################
+# Produce output tables
+all_costs_001_out %>%
+  knitr::kable(caption = "Veda csv output")  %>%
+  kable_styling(latex_options = "striped")
+
+
+demos_costs_001_out %>%
   knitr::kable(caption = "VedaR data") %>%
   kable_styling(latex_options = "striped")
   
@@ -211,6 +218,9 @@ ggplotly(var_act_plot)
 ```{r echo = T, fig.width=7, , fig.height=5}
 
 
+#import the demos_007 data into a tibble
+demos_007 <- prep_data(filename_base = filename_base_007)
+
 res_all <- make_res(dat = demos_007,
                     region_select = "reg1",
                     period_select = 2020,                 
@@ -290,11 +300,9 @@ coa_start_vertices <- ends(g, coa_edges)[,1]
 all_coa_paths <- all_simple_paths(g, from = unique(coa_start_vertices))
 
 #check if the string "exp" appears in the set of paths that project from coa_start_vertices
-print("Check if 'exp' is in all_coa_paths")
 check_in_path("(exp)", all_coa_paths)
 
 #check if the string "dist" appears in the set of paths that project from coa_start_vertices
-print("Check if 'dist' is in all_coa_paths")
 check_in_path("(dist)", all_coa_paths)
 
 
